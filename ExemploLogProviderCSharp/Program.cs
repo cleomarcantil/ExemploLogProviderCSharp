@@ -9,6 +9,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
