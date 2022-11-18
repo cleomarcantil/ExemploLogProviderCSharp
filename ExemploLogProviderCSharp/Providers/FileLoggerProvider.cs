@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace ExemploLogProviderCSharp.Providers;
 
@@ -56,25 +57,34 @@ internal class FileLoggerProvider : ILoggerProvider
 				}
 			}
 
+			linhas.Add(string.Empty);
+
 			AppendToLogFile(linhas);
 		}
 
 		private static object _lockWriter = new object();
 		private void AppendToLogFile(IEnumerable<string> lines)
 		{
-			var logSubDir = configuration["LogStoragePaths"];
+			var storagePath = configuration["Logging:FileLogger:StoragePaths"];
+			var fileNamePrefix = configuration["Logging:FileLogger:FileNamePrefix"];
+			var fileSizeLimit = configuration["Logging:FileLogger:FileSizeLimit"];
+			string logFileName = $"{fileNamePrefix}-{DateTime.Now:yyyy-MM-dd}.log";
 
-			if (string.IsNullOrWhiteSpace(logSubDir))
+			if (string.IsNullOrWhiteSpace(storagePath))
 				return;
 
 			lock (_lockWriter)
 			{
-				var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, logSubDir);
+				var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, storagePath);
 
 				if (!Directory.Exists(logDir))
 					Directory.CreateDirectory(logDir);
 
-				using var writer = File.AppendText(Path.Combine(logDir, $"registro-log-{DateTime.Now:yyyy-MM-dd}.log"));
+				string logFilePath = Path.Combine(logDir, logFileName);
+
+				RenameFileIfExceedSizeLimit(logFilePath, fileSizeLimit);
+
+				using var writer = File.AppendText(logFilePath);
 
 				try
 				{
@@ -88,6 +98,58 @@ internal class FileLoggerProvider : ILoggerProvider
 			}
 		}
 
+		private static void RenameFileIfExceedSizeLimit(string filePath, string sizeLimit)
+		{
+			var fileInfo = new FileInfo(filePath);
+			var fileSizeLimitInBytes = ParseByteSize(sizeLimit) ?? 20 * 1024 * 1024;
+
+			if (!fileInfo.Exists || fileInfo.Length < fileSizeLimitInBytes)
+				return;
+
+			var n = 1;
+			do
+			{
+				var newName = $"{Path.GetFileNameWithoutExtension(fileInfo.Name)}-({n++}){fileInfo.Extension}";
+				var newFilePath = Path.Combine(fileInfo.DirectoryName, newName);
+
+				if (!File.Exists(newFilePath))
+				{
+					File.Move(filePath, newFilePath);
+					break;
+				}
+			} while (true);
+		}
+
+		private static int? ParseByteSize(string value)
+		{
+			if (value == null)
+				return 0;
+
+			value = value.TrimStart().TrimEnd(' ', 'b', 'B');
+			var suffix = string.Empty;
+
+			if (value.Length > 0 && char.IsLetter(value, value.Length - 1))
+			{
+				suffix = value.Substring(value.Length - 1, 1);
+				value = value.Substring(0, value.Length - suffix.Length);
+			}
+
+			if (!int.TryParse(value, out var sizeInByts))
+				return null;
+
+			if (suffix == "K")
+				sizeInByts = sizeInByts * 1024;
+			else if (suffix == "M")
+				sizeInByts = sizeInByts * 1024 * 1024;
+			else if (suffix == "G")
+				sizeInByts = sizeInByts * 1024 * 1024 * 1024;
+			else if (suffix == "T")
+				sizeInByts = sizeInByts * 1024 * 1024 * 1024 * 1024;
+			else if (suffix != string.Empty)
+				return null;
+
+			return sizeInByts;
+		}
 	}
 
 	#endregion
