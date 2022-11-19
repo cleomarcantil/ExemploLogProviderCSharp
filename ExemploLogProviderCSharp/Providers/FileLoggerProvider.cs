@@ -65,7 +65,7 @@ internal class FileLoggerProvider : ILoggerProvider
 		private static object _lockWriter = new object();
 		private void AppendToLogFile(IEnumerable<string> lines)
 		{
-			var storagePath = configuration["Logging:FileLogger:StoragePaths"];
+			var storagePath = configuration["Logging:FileLogger:StoragePath"];
 			var fileNamePrefix = configuration["Logging:FileLogger:FileNamePrefix"];
 			var fileSizeLimit = configuration["Logging:FileLogger:FileSizeLimit"];
 			string logFileName = $"{fileNamePrefix}-{DateTime.Now:yyyy-MM-dd}.log";
@@ -134,21 +134,21 @@ internal class FileLoggerProvider : ILoggerProvider
 				value = value.Substring(0, value.Length - suffix.Length);
 			}
 
-			if (!int.TryParse(value, out var sizeInByts))
+			if (!int.TryParse(value, out var sizeInBytes))
 				return null;
 
 			if (suffix == "K")
-				sizeInByts = sizeInByts * 1024;
+				sizeInBytes = sizeInBytes * 1024;
 			else if (suffix == "M")
-				sizeInByts = sizeInByts * 1024 * 1024;
+				sizeInBytes = sizeInBytes * 1024 * 1024;
 			else if (suffix == "G")
-				sizeInByts = sizeInByts * 1024 * 1024 * 1024;
+				sizeInBytes = sizeInBytes * 1024 * 1024 * 1024;
 			else if (suffix == "T")
-				sizeInByts = sizeInByts * 1024 * 1024 * 1024 * 1024;
+				sizeInBytes = sizeInBytes * 1024 * 1024 * 1024 * 1024;
 			else if (suffix != string.Empty)
 				return null;
 
-			return sizeInByts;
+			return sizeInBytes;
 		}
 	}
 
