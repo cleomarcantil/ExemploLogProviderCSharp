@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 
 namespace ExemploLogProviderCSharp.Providers;
 
 [ProviderAlias("FileLogger")]
-internal class FileLoggerProvider : ILoggerProvider
+internal class FileLoggerProvider : ILoggerProvider, ISupportExternalScope
 {
 	private readonly ConcurrentDictionary<string, FileLogger> _loggers = new();
 	private readonly IConfiguration configuration;
+	private IExternalScopeProvider scopeProvider;
 
 	public FileLoggerProvider(IConfiguration configuration)
 	{
@@ -15,9 +15,12 @@ internal class FileLoggerProvider : ILoggerProvider
 	}
 
 	public ILogger CreateLogger(string categoryName) =>
-		_loggers.GetOrAdd(categoryName, name => new FileLogger(name, configuration));
+		_loggers.GetOrAdd(categoryName, name => new FileLogger(name, configuration, this));
 
 	public void Dispose() => _loggers.Clear();
+
+	public void SetScopeProvider(IExternalScopeProvider scopeProvider) =>
+		this.scopeProvider = scopeProvider;
 
 
 	#region FileLogger
@@ -26,11 +29,13 @@ internal class FileLoggerProvider : ILoggerProvider
 	{
 		private readonly string _name;
 		private readonly IConfiguration configuration;
+		private readonly FileLoggerProvider provider;
 
-		public FileLogger(string name, IConfiguration configuration)
+		public FileLogger(string name, IConfiguration configuration, FileLoggerProvider provider)
 		{
 			this._name = name;
 			this.configuration = configuration;
+			this.provider = provider;
 		}
 
 		public IDisposable BeginScope<TState>(TState state) => default;
@@ -42,19 +47,25 @@ internal class FileLoggerProvider : ILoggerProvider
 			if (!IsEnabled(logLevel))
 				return;
 
-			var linhas = new List<string>()
-				{
-					$"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{eventId.Id,2}: {logLevel,-12}] {_name}",
-					$"\t{formatter(state, exception)}",
-				};
-
-			if (exception is { } ex)
+			var linhas = new List<string>
 			{
-				while (ex != null)
+				$"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{eventId.Id,2}: {logLevel,-12}] {_name}"
+			};
+
+			if (provider.scopeProvider != null)
+			{
+				provider.scopeProvider.ForEachScope((value, loggingProps) =>
 				{
-					linhas.Add($"\t - {ex.GetType().Name}: {ex.Message}");
-					ex = ex.InnerException;
-				}
+					linhas.Add($"\t{value}");
+				}, state);
+			}
+
+			linhas.Add($"\t{formatter(state, exception)}");
+
+			for (var ex = exception; ex != null; ex = ex?.InnerException)
+			{
+				linhas.Add($"\t - {ex.GetType().Name}: {ex.Message}");
+				ex = ex.InnerException;
 			}
 
 			linhas.Add(string.Empty);

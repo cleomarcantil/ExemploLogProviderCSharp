@@ -1,4 +1,5 @@
 using ExemploLogProviderCSharp.Providers;
+using ExemploLogProviderCSharp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
+builder.Services.AddScoped<TesteService>();
 
 var app = builder.Build();
 

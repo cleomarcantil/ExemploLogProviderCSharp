@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using ExemploLogProviderCSharp.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExemploLogProviderCSharp.Controllers
@@ -8,16 +9,22 @@ namespace ExemploLogProviderCSharp.Controllers
 	public class TesteController : ControllerBase
 	{
 		private readonly ILogger<TesteController> logger;
+		private readonly TesteService testeService;
 
-		public TesteController(ILogger<TesteController> logger)
+		public TesteController(ILogger<TesteController> logger, TesteService testeService)
 		{
 			this.logger = logger;
+			this.testeService = testeService;
 		}
 
 		[HttpGet]
-		public string Teste()
+		public async Task<string> Teste()
 		{
-			logger.LogInformation($"Chamado método {nameof(Teste)}");
+			using var loggerScope = logger.BeginScope("Scopo1", "A", "B");
+
+			logger.LogInformation($"TesteController.Teste");
+
+			await testeService.Metodo1();
 
 			return "Teste";
 		}
