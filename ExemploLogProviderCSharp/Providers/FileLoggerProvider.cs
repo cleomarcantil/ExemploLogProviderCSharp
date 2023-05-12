@@ -7,7 +7,7 @@ internal class FileLoggerProvider : ILoggerProvider, ISupportExternalScope
 {
 	private readonly ConcurrentDictionary<string, FileLogger> _loggers = new();
 	private readonly IConfiguration configuration;
-	private IExternalScopeProvider scopeProvider;
+	private IExternalScopeProvider? scopeProvider;
 
 	public FileLoggerProvider(IConfiguration configuration)
 	{
@@ -33,7 +33,7 @@ internal class FileLoggerProvider : ILoggerProvider, ISupportExternalScope
 
 		public FileLogger(string name, IConfiguration configuration, FileLoggerProvider provider)
 		{
-			this._name = name;
+			_name = name;
 			this.configuration = configuration;
 			this.provider = provider;
 		}
@@ -52,21 +52,13 @@ internal class FileLoggerProvider : ILoggerProvider, ISupportExternalScope
 				$"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{eventId.Id,2}: {logLevel,-12}] {_name}"
 			};
 
-			if (provider.scopeProvider != null)
-			{
-				provider.scopeProvider.ForEachScope((value, loggingProps) =>
-				{
-					linhas.Add($"\t{value}");
-				}, state);
-			}
+			if (provider.scopeProvider?.GetScopeLevelGroup() is { } scopeLevelGroup)
+				linhas.Add($"Scope: {scopeLevelGroup.GetFullLevelName()}");
 
 			linhas.Add($"\t{formatter(state, exception)}");
 
-			for (var ex = exception; ex != null; ex = ex?.InnerException)
-			{
+			for (var ex = exception; ex != null; ex = ex.InnerException)
 				linhas.Add($"\t - {ex.GetType().Name}: {ex.Message}");
-				ex = ex.InnerException;
-			}
 
 			linhas.Add(string.Empty);
 

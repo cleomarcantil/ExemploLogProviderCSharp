@@ -20,9 +20,15 @@
 		{
 			await Task.Run(() =>
 			{
-				using var loggerScope = logger.BeginScope("Scopo1.1", "A", "B");
+				logger.LogInformation("TesteService.Metodo2 - Início...");
 
-				logger.LogInformation("TesteService.Metodo2");
+				using (var loggerScope = logger.BeginScopeLevelGroup("Service"))
+				{
+					logger.LogInformation("TesteService.Metodo2 - Dentro do scopo - 1");
+					logger.LogInformation("TesteService.Metodo2 - Dentro do scopo - 2");
+				}
+
+				logger.LogInformation("TesteService.Metodo2 - Fim...");
 			});
 		}
     }

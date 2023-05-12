@@ -1,5 +1,4 @@
 ﻿using ExemploLogProviderCSharp.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExemploLogProviderCSharp.Controllers
@@ -20,11 +19,19 @@ namespace ExemploLogProviderCSharp.Controllers
 		[HttpGet]
 		public async Task<string> Teste()
 		{
-			using var loggerScope = logger.BeginScope("Scopo1", "A", "B");
+			logger.LogInformation($"TesteController.Teste - Início...");
 
-			logger.LogInformation($"TesteController.Teste");
+			using (var loggerScope = logger.BeginScopeLevelGroup("Controller"))
+			{
 
-			await testeService.Metodo1();
+				logger.LogInformation($"TesteController.Teste - Dentro do scopo de log - 1");
+
+				await testeService.Metodo1();
+
+				logger.LogInformation($"TesteController.Teste - Dentro do scopo de log - 2");
+			}
+
+			logger.LogInformation($"TesteController.Teste - Fim...");
 
 			return "Teste";
 		}
@@ -33,15 +40,27 @@ namespace ExemploLogProviderCSharp.Controllers
 		[HttpPost]
 		public void TesteErro()
 		{
+			using var loggerScope = logger.BeginScopeLevelGroup();
+
 			try
 			{
-				throw new Exception("Teste erro!");
+				try
+				{
+					GerarExcecaoInterna();
+				}
+				catch (Exception ex)
+				{
+					throw new Exception("Teste erro!", ex);
+				}
 			}
 			catch (Exception ex)
 			{
 				logger.LogError(ex, $"Chamado método {nameof(TesteErro)}");
 			}
 		}
+
+		private void GerarExcecaoInterna() =>
+			throw new Exception("Gerando exceção interna!");
 
 	}
 }
