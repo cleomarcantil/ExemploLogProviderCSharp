@@ -1,4 +1,4 @@
-using ExemploLogProviderCSharp.Providers;
+using ExemploLogProviderCSharp.Providers.Logger;
 using ExemploLogProviderCSharp.Services;
 
 var builder = WebApplication.CreateBuilder(args);

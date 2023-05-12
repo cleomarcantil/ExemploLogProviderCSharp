@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace ExemploLogProviderCSharp.Providers;
+namespace ExemploLogProviderCSharp.Providers.Logger;
 
 [ProviderAlias("FileLogger")]
 internal class FileLoggerProvider : ILoggerProvider, ISupportExternalScope
